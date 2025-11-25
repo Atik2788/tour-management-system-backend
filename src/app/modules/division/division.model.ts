@@ -36,7 +36,7 @@ divisionSchema.pre("findOneAndUpdate", async function (next){
     const division = this.getUpdate() as Partial<IDivision>
     if(division.name){
         const baseSlug = division.name.toLowerCase().split(" ").join("-");
-        let slug = `${baseSlug}-dividion`
+        let slug = `${baseSlug}-division`
         
         let counter = 0
         while(await Division.exists({slug})){
