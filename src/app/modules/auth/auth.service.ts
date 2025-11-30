@@ -7,6 +7,7 @@ import { createNewRefreshTokenWithAccessToken } from "../../utils/userTokens";
 import { JwtPayload } from "jsonwebtoken";
 import { envVars } from "../../config/env";
 // import { generateToken } from "../../utils/jwt";
+import { IAuthProvider } from "../user/user.interface";
 
 // const credentialLogin = async (payload: Partial<IUser>) =>{
 //     const {email, password} = payload;
@@ -55,7 +56,44 @@ const getNewAccessToken = async (refreshToken: string) =>{
     }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const resetPassword = async (oldPassword: string, newPassword: string, decodedToken: JwtPayload) =>{
+    return {}
+}
+
+const setPassword = async (userId: string, plainPassword: string) =>{
+    const user = await User.findById(userId)
+    console.log('hit set')
+
+    if(!user){
+        throw new AppError(httpStatus.NOT_FOUND, "User not found")
+    }
+
+    if(user.password && user.auths.some(providerObject => providerObject.provider === "google")){
+       throw new AppError(httpStatus.BAD_REQUEST, "Password is already set for google authenticated user") 
+    }
+
+    console.log('salt pass')
+    const hashedPassword = await bcryptjs.hash(plainPassword, Number(envVars.BCRYPT_SALT_ROUND || 10));
+    console.log('salt pass', hashedPassword)
+
+    const credentialProvider: IAuthProvider = {
+        provider: "credential",
+        providerId: user.email
+    }
+
+    const auth: IAuthProvider[] = [...user.auths, credentialProvider]
+
+    user.password = hashedPassword;
+    user.auths = auth;
+
+    await user.save();
+
+
+    return {}
+}
+
+const changePassword = async (oldPassword: string, newPassword: string, decodedToken: JwtPayload) =>{
 
     const user = await User.findById(decodedToken.userId)
 
@@ -72,6 +110,8 @@ const resetPassword = async (oldPassword: string, newPassword: string, decodedTo
 export const AuthServices = {
     // credentialLogin,
     getNewAccessToken,
-    resetPassword
+    resetPassword,
+    changePassword,
+    setPassword,
       
 }

@@ -9,8 +9,10 @@ const router = Router()
 router.post("/login", AuthControllers.credentialLogin)
 router.post("/refresh-token", AuthControllers.getNewAccessToken)
 router.post("/logout", AuthControllers.logout)
-router.post("/reset-password", checkAuth(...Object.values(Role)), AuthControllers.resetPassword)
+router.post("/change-password", checkAuth(...Object.values(Role)), AuthControllers.changePassword)
+router.post("/set-password", checkAuth(...Object.values(Role)), AuthControllers.setPassword)
     
+
 router.get("/google", (req: Request, res: Response, next: NextFunction)=>{
     const redirect = req.query.redirect || '/'
     passport.authenticate("google", {scope: ["profile", "email"], state: redirect as string})(req, res, next)
