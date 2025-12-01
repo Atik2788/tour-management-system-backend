@@ -86,19 +86,15 @@ const getAllUsers = async() =>{
         }
     }
 }
-const getMe = async(userId: string) =>{
-    const user = await User.findById(userId);    
 
-    return {user}    
-}
 
-const getSingleUser = async(id:string, decodedToken: {userId: string}) =>{
+const getSingleUser = async(id:string, decodedToken: string) =>{
     console.log(decodedToken)
-    if(!decodedToken || !decodedToken.userId){
+    if(!decodedToken){
         throw new AppError(httpStatus.UNAUTHORIZED, "Invalid token or no token provided")
     }
 
-    if (decodedToken.userId !== id) {
+    if (decodedToken !== id) {
         throw new AppError(httpStatus.UNAUTHORIZED, "You are not authorized to access this user");
     }
 
@@ -108,6 +104,24 @@ const getSingleUser = async(id:string, decodedToken: {userId: string}) =>{
         throw new AppError(httpStatus.NOT_FOUND, "User not found");
     }
 
+
+    return {
+        data: user
+    }
+}
+
+
+const getMe = async(decodedToken: string) =>{
+
+    if(!decodedToken){
+        throw new AppError(httpStatus.UNAUTHORIZED, "Invalid token or no token provided")
+    }
+
+    const user = await User.findById(decodedToken).select("-password");
+
+    if (!user) {
+        throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    }
 
     return {
         data: user

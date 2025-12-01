@@ -153,7 +153,6 @@ const googleCallbackControler = catchAsync(async(req: Request, res: Response, ne
         redirectTo = redirectTo.slice(1)
     }
 
-
     const user = req.user;
     console.log('user', user)
     

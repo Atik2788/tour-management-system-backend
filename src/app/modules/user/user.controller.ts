@@ -61,38 +61,30 @@ const getAllUsers = catchAsync(async(req: Request, res: Response, next: NextFunc
         })
 })
 
-const getMe = catchAsync(async(req: Request, res: Response, next: NextFunction) =>{
-
-        const result = await UserService.getAllUsers();
-
-        // res.status(httpStatus.OK).json({
-        //     success: true,
-        //     message: "Users retrieved successfully",
-        //     users,
-        // })
-            sendResponse(res, {
-            statusCode: httpStatus.CREATED,
-            success: true,
-            message: "All Users retrieved successfully",
-            data: result.data,
-            meta: result.meta
-        })
-})
-
-interface TJwtPayload extends JwtPayload {
-    userId: string;
-}
 
 const getSingleUser = catchAsync(async(req: Request, res: Response, next: NextFunction) =>{
         const id = req.params.id;
-        const verifiedToken = req.user;
+        const verifiedToken = req.user as JwtPayload;
 
-        const result = await UserService.getSingleUser(id, verifiedToken as TJwtPayload);
+        const result = await UserService.getSingleUser(id, verifiedToken.userId);
 
             sendResponse(res, {
-            statusCode: httpStatus.CREATED,
+            statusCode: httpStatus.OK,
             success: true,
             message: "User retrieved successfully",
+            data: result.data,
+        })
+})
+
+const getMe = catchAsync(async(req: Request, res: Response, next: NextFunction) =>{
+        const verifiedToken = req.user as JwtPayload;
+
+        const result = await UserService.getMe(verifiedToken.userId);
+
+            sendResponse(res, {
+            statusCode: httpStatus.OK,
+            success: true,
+            message: "Your profile retrieved successfully",
             data: result.data,
         })
 })
