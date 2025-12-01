@@ -4,47 +4,12 @@ import httpStatus from "http-status";
 import { User } from "../user/user.model";
 import bcryptjs from "bcryptjs";
 import { createNewRefreshTokenWithAccessToken } from "../../utils/userTokens";
-import { JwtPayload } from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import { envVars } from "../../config/env";
 // import { generateToken } from "../../utils/jwt";
-import { IAuthProvider } from "../user/user.interface";
+import { IAuthProvider, IsActive } from "../user/user.interface";
+import { sendEmail } from "../../utils/sendEmail";
 
-// const credentialLogin = async (payload: Partial<IUser>) =>{
-//     const {email, password} = payload;
-
-//     const isUserExist = await User.findOne({email})
-
-//     if(!isUserExist){
-//         throw new AppError(httpStatus.BAD_REQUEST, "User does not exist")
-//     }
-
-//     const isPasswordMatched = await bcryptjs.compare(password as string, isUserExist.password as string);
-//     if(!isPasswordMatched){
-//         throw new AppError(httpStatus.BAD_REQUEST, "Password does not match")
-//     }
-
-//     // // jwt perameter valiable
-//     // const jwtPayload = {
-//     //     userId: isUserExist._id,
-//     //     email: isUserExist.email,
-//     //     role: isUserExist.role
-//     // }
-//     // const accessToken = generateToken(jwtPayload, envVars.JWT_ACCESS_SECRET, envVars.JWT_ACCESS_EXPIRES)
-//     // const refreshToken = generateToken(jwtPayload, envVars.JWT_REFRESH_SECRET, envVars.JWT_REFRESH_EXPIRES)
-
-//     const userTokens = createUserTokens(isUserExist)
-
-
-//     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-//     const {password: pass, ...rest} = isUserExist.toObject();
-
-
-//     return {
-//         accessToken: userTokens.accessToken,
-//         refreshToken: userTokens.refreshToken,
-//         user: rest
-//     }
-// }
 
 
 const getNewAccessToken = async (refreshToken: string) =>{
@@ -57,7 +22,8 @@ const getNewAccessToken = async (refreshToken: string) =>{
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const resetPassword = async (oldPassword: string, newPassword: string, decodedToken: JwtPayload) =>{
+const resetPassword = async (newPassword: string, decodedToken: JwtPayload) =>{
+    
     return {}
 }
 
@@ -93,6 +59,54 @@ const setPassword = async (userId: string, plainPassword: string) =>{
     return {}
 }
 
+const forgotPassword = async (email: string) =>{
+    const isUserExist = await User.findOne({ email });
+
+    if(!isUserExist){
+        throw new AppError(httpStatus.BAD_REQUEST, "User does not exist")
+    }
+    if(isUserExist.isActive === IsActive.BLOCKED || isUserExist.isActive === IsActive.INACTIVE){
+        throw new AppError(httpStatus.BAD_REQUEST, `User is ${isUserExist.isActive}`)
+    }
+    if(isUserExist.isDeleted){
+        throw new AppError(httpStatus.BAD_REQUEST, "Usrer is deleted")
+    }
+    if(!isUserExist.isVerified){
+        throw new AppError(httpStatus.BAD_REQUEST, "User is not verified")
+    }
+
+
+    const jwtPayload = {
+        userId: isUserExist._id,
+        email: isUserExist.email,
+        role: isUserExist.role
+    }
+
+    const resetToken = jwt.sign(jwtPayload, envVars.JWT_ACCESS_SECRET, {expiresIn: "10m"})
+
+    const resetUILink = `${envVars.FRONTEND_URL}/reset-password?id=${isUserExist._id}&token=${resetToken}`
+
+    sendEmail({
+        to: isUserExist.email,
+        subject: 'Password Reset Link',
+        templateName: "forgetPassword",
+        templateData:{
+            name: isUserExist.name,
+            resetUILink
+        }
+    })
+
+
+    return {}
+
+}
+
+/*
+    http://localhost:3000/reset-password?id=692b25178c6271b9467b6a5e&
+    token=
+    eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OTJiMjUxNzhjNjI3MWI5NDY3YjZhNWUiLCJlbWFpbCI6ImFzaGFudG82NTMuZmlAZ21haWwuY29tIiwicm9sZSI6IlVTRVIiLCJpYXQiOjE3NjQ2MDc2MzYsImV4cCI6MTc2NDYwODIzNn0.A_qVviAv6Lc_6fMMIQ0At9roZQxanwWjQfAKdVi6eLo
+*/
+
 const changePassword = async (oldPassword: string, newPassword: string, decodedToken: JwtPayload) =>{
 
     const user = await User.findById(decodedToken.userId)
@@ -113,5 +127,7 @@ export const AuthServices = {
     resetPassword,
     changePassword,
     setPassword,
+    forgotPassword,
+    
       
 }
