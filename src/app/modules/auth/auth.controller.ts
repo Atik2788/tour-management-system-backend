@@ -116,10 +116,10 @@ const changePassword = catchAsync(async(req: Request, res: Response, next: NextF
 
 
 const resetPassword = catchAsync(async(req: Request, res: Response, next: NextFunction)=>{
-    const newPassword = req.body.newPassword;
+    const {newPassword, id} = req.body;
     const decodedToken = req.user;
 
-    await AuthServices.resetPassword(newPassword, decodedToken as JwtPayload)
+    await AuthServices.resetPassword(newPassword, id, decodedToken as JwtPayload)
 
     sendResponse(res, {
         statusCode: httpStatus.OK,

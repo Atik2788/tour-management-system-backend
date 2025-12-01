@@ -22,7 +22,20 @@ const getNewAccessToken = async (refreshToken: string) =>{
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const resetPassword = async (newPassword: string, decodedToken: JwtPayload) =>{
+const resetPassword = async (newPassword: string, id: string, decodedToken: JwtPayload) =>{
+    if(decodedToken.userId !== id){
+        throw new AppError(httpStatus.UNAUTHORIZED, "You are not authorized to reset password for this user")
+    }
+    const isUserExist = await User.findById(decodedToken.userId)
+
+    if(!isUserExist){
+        throw new AppError(httpStatus.NOT_FOUND, "User not found")
+    }
+
+    const hashedPassword = await bcryptjs.hash(newPassword, Number(envVars.BCRYPT_SALT_ROUND));
+    isUserExist.password = hashedPassword;
+
+    await isUserExist.save();
     
     return {}
 }
@@ -101,11 +114,6 @@ const forgotPassword = async (email: string) =>{
 
 }
 
-/*
-    http://localhost:3000/reset-password?id=692b25178c6271b9467b6a5e&
-    token=
-    eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OTJiMjUxNzhjNjI3MWI5NDY3YjZhNWUiLCJlbWFpbCI6ImFzaGFudG82NTMuZmlAZ21haWwuY29tIiwicm9sZSI6IlVTRVIiLCJpYXQiOjE3NjQ2MDc2MzYsImV4cCI6MTc2NDYwODIzNn0.A_qVviAv6Lc_6fMMIQ0At9roZQxanwWjQfAKdVi6eLo
-*/
 
 const changePassword = async (oldPassword: string, newPassword: string, decodedToken: JwtPayload) =>{
 
