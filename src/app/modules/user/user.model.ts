@@ -30,7 +30,7 @@ const userSchema = new Schema<IUser>({
         enum: Object.values(IsActive),
         default: IsActive.ACTIVE
     },
-    isValidated: {type: Boolean, default: "false"},
+    isVerified: { type: Boolean, default: false },
     auths: [authProviderSchema],
     // bookings: {
     //     type:

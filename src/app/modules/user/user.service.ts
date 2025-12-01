@@ -12,9 +12,9 @@ const createUser = async(payload: Partial<IUser>) =>{
 
         const isUserExist = await User.findOne({email})
 
-        // if(isUserExist){
-        //     throw new AppError(httpStatus.BAD_REQUEST, "User Already Exist")
-        // }
+        if(isUserExist){
+            throw new AppError(httpStatus.BAD_REQUEST, "User Already Exist")
+        }
 
         const hashPassword = await bcryptjs.hash(password as string, Number(process.env.BCRYPT_SALT_ROUND))
 
@@ -88,12 +88,55 @@ const getAllUsers = async() =>{
 }
 
 
+const getSingleUser = async(id:string, decodedToken: string) =>{
+    console.log(decodedToken)
+    if(!decodedToken){
+        throw new AppError(httpStatus.UNAUTHORIZED, "Invalid token or no token provided")
+    }
+
+    if (decodedToken !== id) {
+        throw new AppError(httpStatus.UNAUTHORIZED, "You are not authorized to access this user");
+    }
+
+    const user = await User.findById(id)
+
+        if (!user) {
+        throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    }
+
+
+    return {
+        data: user
+    }
+}
+
+
+const getMe = async(decodedToken: string) =>{
+
+    if(!decodedToken){
+        throw new AppError(httpStatus.UNAUTHORIZED, "Invalid token or no token provided")
+    }
+
+    const user = await User.findById(decodedToken).select("-password");
+
+    if (!user) {
+        throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    }
+
+    return {
+        data: user
+    }
+}
+
+
 
 
 
 export const UserService = {
     createUser,
     getAllUsers,
-    updateUser
+    updateUser,
+    getMe,
+    getSingleUser,
 }
 
