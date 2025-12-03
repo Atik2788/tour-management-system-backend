@@ -1,12 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { PAYMENT_STATUS } from "../payment/payment.interface";
-import { Payment } from "../payment/payment.model";
+import { PAYMENT_STATUS } from "./payment.interface";
+import { Payment } from "./payment.model";
 import { Booking } from "../bookings/bookings.model";
 import { BOOKING_STATUS } from "../bookings/bookings.interface";
 import AppError from "../../errorHelpers/appError";
 import httpStatus from "http-status";
 import { ISSLCommerz } from "../sslcommers/sslcommerz.interface";
 import { SSLService } from "../sslcommers/slcommerz.service";
+import { generatePdf, IInvoiceData } from "../../utils/invoice";
+import { ITour } from "../tour/tour.interface";
+import { IUser } from "../user/user.interface";
+import { sendEmail } from "../../utils/sendEmail";
 
 const successPayment = async (query: Record<string, string>) => {
   const session = await Booking.startSession();
@@ -20,14 +24,49 @@ const successPayment = async (query: Record<string, string>) => {
       },
       { runValidators: true, session }
     );
+    if(!updatedPayment){
+      throw new AppError(httpStatus.NOT_FOUND, "Payment not found");
+    }
 
-    await Booking.findOneAndUpdate(
+    const updatedBooking = await Booking.findOneAndUpdate(
       updatedPayment?.booking,
       {
         status: BOOKING_STATUS.COMPLETE,
       },
-      { runValidators: true, session }
-    );
+      { new: true, runValidators: true, session }
+    ).populate("tour", "title").populate("user", "name email");
+
+    if(!updatedBooking){
+        throw new AppError(httpStatus.NOT_FOUND, "Booking not found");
+    }
+
+
+    const invoiceData:IInvoiceData = {
+      bookingDate:updatedBooking?.createdAt as Date,
+      guestCount: updatedBooking?.guestCount,
+      totalAmount: updatedPayment?.amount,
+      tourTitle: (updatedBooking?.tour as unknown as ITour).title,
+      transactionId: updatedPayment?.transactionId,
+      userName: (updatedBooking?.user as unknown as IUser).name,     
+
+    }
+
+    const pdfBuffer = await generatePdf(invoiceData)
+
+    await sendEmail({
+      to: (updatedBooking?.user as unknown as IUser).email,
+      subject: "Your Booking Invoice",
+      templateName: "invoice",
+      templateData: invoiceData,
+      attachments: [
+        {
+          filename: "invoice.pdf",
+          content: pdfBuffer,
+          contentType: "application/pdf",
+        }
+      ]
+        
+    })
 
     await session.commitTransaction();
     session.endSession();

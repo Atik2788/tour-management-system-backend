@@ -3,7 +3,6 @@ import { Request, Response } from 'express';
 import { sendResponse } from '../../utils/sendResponse';
 import { OTPService } from './otp.service';
 import httpStatus from 'http-status';
-import { success } from 'zod';
 
 
 const sendOTP = async (req: Request, res: Response) => {
