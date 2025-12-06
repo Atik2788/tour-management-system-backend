@@ -1,6 +1,6 @@
 import { User } from "../user/user.model";
 import { IsActive } from "../user/user.interface";
-import { Tour, TourType } from "../tour/tour.model";
+import { Tour} from "../tour/tour.model";
 
 const now = new Date();
 const sevenDaysAgo = new Date(now).setDate(now.getDate() - 7);
@@ -57,23 +57,7 @@ const getUserStats = async () => {
 const getTourStats = async () => {
     const totalTourPromise = Tour.countDocuments();
 
-    await Tour.updateMany(
-    {
-        $or: [
-            {tourType: {$type: "string"}},
-            {division: {$type: "string"}}
-            
-        ]
-    },
-    [
-        {
-            $set: {
-                tourType: {$toObjectId: "$tourType"},
-                division: {$toObjectId: "$division"}
-            }
-        }
-    ]
-)
+
 
     const totalTourByTourTypePromise = Tour.aggregate([
         //stage 1: connect Tour type model - lookup stage
@@ -84,17 +68,71 @@ const getTourStats = async () => {
                 foreignField: "_id",
                 as: "type"
             }
+        },
+        //stage 2: unwind the array to object
+        {
+            $unwind : "$type"
+        },
+
+        // stage: 3: grouping tour type
+        {
+            $group: {
+                _id: "$type.name",
+                count: {$sum: 1}
+            }
         }        
+        
     ])
 
-    const [totalTour, totalTourByTourType] = await Promise.all([
+
+    const avgTourCostPromise = Tour.aggregate([
+        // state 1: group the cost form, do sum, and avarage the sum
+        {
+            $group: {
+                _id: null,
+                avgCostFrom: {$avg: "$costFrom"}
+            }
+        }
+
+    ])
+
+
+    const totalTourByDivvisionPromise  = Tour.aggregate([
+        //stage 1: connect Division model - lookup stage
+        {
+            $lookup : {
+                from: "divisions",
+                localField: "division",
+                foreignField: "_id",
+                as: "division"
+            }
+        },
+        //stage 2: unwind the array to object
+        {
+            $unwind : "$division"
+        },
+
+        // stage: 3: grouping tour type
+        {
+            $group: {
+                _id: "$division.name",
+                count: {$sum: 1}
+            }
+        }  
+    ])
+
+
+
+    const [totalTour, totalTourByTourType, avgTourCost] = await Promise.all([
         totalTourPromise,
-        totalTourByTourTypePromise,       
+        totalTourByTourTypePromise, 
+        avgTourCostPromise      
     ])
 
     return {
         totalTour,
-        totalTourByTourType
+        totalTourByTourType,
+        avgTourCost
     }
 }
 
@@ -122,3 +160,28 @@ export const StausService = {
     getBookingStats,
     getPaymentStats,
 }
+
+
+
+/*
+
+    await Tour.updateMany(
+    {
+        $or: [
+            {tourType: {$type: "string"}},
+            {division: {$type: "string"}}
+            
+        ]
+    },
+    [
+        {
+            $set: {
+                tourType: {$toObjectId: "$tourType"},
+                division: {$toObjectId: "$division"}
+            }
+        }
+    ]
+)
+    
+
+*/
