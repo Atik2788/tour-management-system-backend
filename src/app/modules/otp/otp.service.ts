@@ -7,11 +7,13 @@ import { User } from '../user/user.model';
 
 const OTP_EXPIRATION_TIME = 5 * 60; // 5 minutes in seconds
 
+// eslint-disable-next-line @typescript-eslint/no-inferrable-types
 const generateOtp = (length: number = 6) => {
     const otp = crypto.randomInt(Math.pow(10, length - 1), Math.pow(10, length)).toString();
     return otp;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const sendOTP = async (email: string, name: string) => {
     const user = await User.findOne({email});
     if(!user){

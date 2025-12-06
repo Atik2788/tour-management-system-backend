@@ -15,14 +15,14 @@ import { getTranscationId } from "../../utils/getTransactionId";
 
 const createBooking = async (payload: Partial<IBooking>, userId: string) => {
   const transactionId = getTranscationId();
-
+  
   const session = await Booking.startSession();
   session.startTransaction();
-
+  
   try {
-
-      const user = await User.findById(userId);
-
+    
+    const user = await User.findById(userId);
+    
       if (!user?.phone || !user?.address) {
         throw new AppError(
           httpStatus.BAD_REQUEST,
