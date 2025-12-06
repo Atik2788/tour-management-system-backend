@@ -1,6 +1,7 @@
 import { User } from "../user/user.model";
 import { IsActive } from "../user/user.interface";
 import { Tour} from "../tour/tour.model";
+import { Booking } from "../bookings/bookings.model";
 
 const now = new Date();
 const sevenDaysAgo = new Date(now).setDate(now.getDate() - 7);
@@ -58,7 +59,6 @@ const getTourStats = async () => {
     const totalTourPromise = Tour.countDocuments();
 
 
-
     const totalTourByTourTypePromise = Tour.aggregate([
         //stage 1: connect Tour type model - lookup stage
         {
@@ -97,7 +97,7 @@ const getTourStats = async () => {
     ])
 
 
-    const totalTourByDivvisionPromise  = Tour.aggregate([
+    const totalTourByDivisionPromise  = Tour.aggregate([
         //stage 1: connect Division model - lookup stage
         {
             $lookup : {
@@ -121,18 +121,68 @@ const getTourStats = async () => {
         }  
     ])
 
+    const totalHiestBookedTourPromise = Booking.aggregate([
+            // stage 1: 
+            {
+                $group: {
+                    _id: "$tour",
+                    bookingCount: {$sum: 1}
+                }
+            },
+            // stage 2: sort the tour
+            {
+                $sort: {bookingCount: -1}
+            },
+            // stage 3: limit
+            {
+                $limit: 5
+            },
+            // stage 4: lookup stage
+            {
+                $lookup: {
+                    from: "tours",
+                    let : {tourId: "$_id"},
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {$eq: ["$_id", "$$tourId"]}
+                            }
+                        }
+                    ],
+                    as: "tour"
+                }
+            },
+            //stage 5: unwind
+            {$unwind: "$tour"},
+            // stage 6: Projects stage
+            {
+                $project: {
+                    bookingCount: 1,
+                    "tour.title": 1,
+                    
+                    "tour.slug": 1,
+                    
+                }
+            }
+
+    ])
 
 
-    const [totalTour, totalTourByTourType, avgTourCost] = await Promise.all([
+
+    const [totalTour, totalTourByTourType, avgTourCost, totalTourByDivision, totalHiestBookedTour] = await Promise.all([
         totalTourPromise,
         totalTourByTourTypePromise, 
-        avgTourCostPromise      
+        avgTourCostPromise,
+        totalTourByDivisionPromise,
+        totalHiestBookedTourPromise,
     ])
 
     return {
         totalTour,
         totalTourByTourType,
-        avgTourCost
+        avgTourCost,
+        totalTourByDivision,
+        totalHiestBookedTour,
     }
 }
 
