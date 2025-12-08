@@ -46,14 +46,6 @@ export const updateZodSchema = z.object({
                     .max(50, { message: "Name must be at most 50 characters long" })
                     .refine((val) => typeof val === "string", { message: "Name must be string" })
                     .optional(),
-    
-                password: z
-                    .string()
-                    .min(8, { message: "Password must be at least 8 characters long" })
-                    .regex(/[A-Z]/, { message: "Password must contain at least 1 uppercase letter" })
-                    .regex(/[0-9]/, { message: "Password must contain at least 1 digit" })
-                    .regex(/[!@#$%^&*(),.?":{}|<>]/, { message: "Password must contain at least 1 special character" })
-                    .optional(),
 
                 role: z
                     // enum 

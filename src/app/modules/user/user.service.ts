@@ -4,7 +4,6 @@ import { User } from "./user.model";
 import httpStatus from "http-status";
 import bcryptjs from "bcryptjs";
 import { JwtPayload } from "jsonwebtoken";
-import { envVars } from "../../config/env";
 
 
 const createUser = async(payload: Partial<IUser>) =>{
@@ -32,39 +31,41 @@ const createUser = async(payload: Partial<IUser>) =>{
 
 const updateUser = async(userId: string, payload: Partial<IUser>, decodedToken: JwtPayload) =>{
 
+    if(decodedToken.role === Role.USER || decodedToken.role === Role.GUIDE){
+        if(decodedToken.id !== userId){
+            throw new AppError(httpStatus.FORBIDDEN, "You are not allowed to update this user")
+        }
+    }
+
+
+
     const ifUserExist = await User.findById(userId);
 
     if(!ifUserExist){
         throw new AppError(httpStatus.NOT_FOUND, "User does not exist")
-    }   
+    }  
+    
+    if(decodedToken.role === Role.ADMIN && ifUserExist.role === Role.SUPER_ADMIN ) {  
+        throw new AppError(httpStatus.FORBIDDEN, "You are not allowed to update Super Admin")
+    }    
 
 
     if(payload.role){
         if(decodedToken.role === Role.USER || decodedToken.role === Role.GUIDE){
             throw new AppError(httpStatus.FORBIDDEN, "You are not allowed to update role")
         }
-
-        // if(decodedToken.role === Role.ADMIN){
-        //     if(payload.role === Role.SUPER_ADMIN){
-        //         throw new AppError(httpStatus.FORBIDDEN, "You are not allowed to update role to Super_Admin")
-        //     }
-        // }
-
-        if(payload.role === Role.SUPER_ADMIN && decodedToken.role === Role.ADMIN){
-            throw new AppError(httpStatus.FORBIDDEN, "You are not allowed to update role to Super_Admin")
-        }
     }
  
 
-    if(payload.isActive || payload.isDeleted || payload.isValidated){
+    if(payload.isActive || payload.isDeleted || payload.isVerified){
             if(decodedToken.role === Role.USER || decodedToken.role === Role.GUIDE){
                 throw new AppError(httpStatus.FORBIDDEN, "You are not allowed to update role")
             }
     }
 
-    if(payload.password){
-        payload.password = await bcryptjs.hash(payload.password, envVars.BCRYPT_SALT_ROUND)
-    }
+    // if(payload.password){
+    //     payload.password = await bcryptjs.hash(payload.password, envVars.BCRYPT_SALT_ROUND)
+    // }
 
     const newUpdateUser = await User.findByIdAndUpdate(userId, payload, {new: true, runValidators: true})
 

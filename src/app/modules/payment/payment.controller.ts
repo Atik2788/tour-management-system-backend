@@ -26,7 +26,7 @@ const failPayment = catchAsync(async(req:Request, res: Response) =>{
 
 })
 
-const cenclePayment = catchAsync(async(req:Request, res: Response) =>{
+const canclePayment = catchAsync(async(req:Request, res: Response) =>{
 // update booking status to cencel
 // update payment status to cencel
     const query = req.query;
@@ -51,12 +51,27 @@ const initPayment = catchAsync(async(req:Request, res: Response) =>{
     })
 })
 
+const getInvoiceDownloadURL = catchAsync(async(req:Request, res: Response) =>{
+    const paymentId =  req.params.paymentId;
+    console.log(paymentId, "hitted")
+
+    const result = await PaymentService.getInvoiceDownloadURL(paymentId);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Invoice download URL fetched successfully",
+        data: result,
+    })
+})
+
 
 
 
 export const PaymentController = {
     successPayment,
     failPayment,
-    cenclePayment,
-    initPayment
+    canclePayment,
+    initPayment,
+    getInvoiceDownloadURL,
 }
