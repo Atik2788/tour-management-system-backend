@@ -14,7 +14,6 @@ import { sendEmail } from "../../utils/sendEmail";
 import { uploadBufferToCloudinary } from "../../config/cloudinary.config";
 
 
-
 const successPayment = async (query: Record<string, string>) => {
   const session = await Booking.startSession();
   session.startTransaction();

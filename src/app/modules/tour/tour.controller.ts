@@ -3,13 +3,24 @@ import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { TourService } from "./tour.service";
 import { ITour } from "./tour.interface";
+import { uploadBufferToCloudinary } from "../../config/cloudinary.config";
 
 
 /* ------------------ TOUR  CONTROLLERS -------------------- */
 const createTour = catchAsync(async (req: Request, res: Response)=>{
+    let imagesUrls: string[] = [];
+
+    if (req.body.imagesBase64 && Array.isArray(req.body.imagesBase64)) {
+        imagesUrls = await Promise.all(req.body.imagesBase64.map(async (base64: string, idx: number) => {
+            const buffer = Buffer.from(base64, 'base64');
+            const result = await uploadBufferToCloudinary(buffer, `tour-image-${idx}`);
+            return result?.secure_url || '';
+        }));
+    }
+
     const payload: ITour = {
         ...req.body,
-        images: (req.files as Express.Multer.File[]).map(file => file.path)
+        images: imagesUrls
     }
 
     const result = await TourService.createTour(payload);
@@ -21,6 +32,7 @@ const createTour = catchAsync(async (req: Request, res: Response)=>{
         data: result,
     })
 })
+
 
 const getAllTours =  catchAsync(async (req: Request, res: Response)=>{
     const query = req.query;
@@ -39,12 +51,21 @@ const getAllTours =  catchAsync(async (req: Request, res: Response)=>{
 
 const updateTour = catchAsync(async (req: Request, res: Response)=>{
     const id = req.params.id;
-    
-        const payload: ITour = {
-        ...req.body,
-        images: (req.files as Express.Multer.File[]).map(file => file.path)
+    let imagesUrls: string[] = [];
+
+    if (req.body.imagesBase64 && Array.isArray(req.body.imagesBase64)) {
+        imagesUrls = await Promise.all(req.body.imagesBase64.map(async (base64: string, idx: number) => {
+            const buffer = Buffer.from(base64, 'base64');
+            const result = await uploadBufferToCloudinary(buffer, `tour-image-${idx}`);
+            return result?.secure_url || '';
+        }));
     }
-    
+
+    const payload: Partial<ITour> = {
+        ...req.body,
+        ...(imagesUrls.length && { images: imagesUrls })
+    }
+
     const result = await TourService.updateTour(id, payload);
 
     sendResponse(res, {
@@ -53,7 +74,8 @@ const updateTour = catchAsync(async (req: Request, res: Response)=>{
         message: "Tour updated successfully",
         data: result
     })
-} )
+})
+
 
 
 

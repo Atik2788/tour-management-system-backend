@@ -33,6 +33,7 @@ const getSingleDivision = async (slug: string) =>{
     }
 }
 
+
 const updateDivision = async( id: string, payload: Partial<IDivision>) =>{
     const existingDivision = await Division.findById(id);
     if(!existingDivision){
@@ -56,11 +57,19 @@ const updateDivision = async( id: string, payload: Partial<IDivision>) =>{
     return updateDivision
 }
 
-const deleteDivision = async(id: string) =>{
+const deleteDivision = async (id: string) => {
+    const existingDivision = await Division.findById(id);
+    if (!existingDivision) throw new Error("Division does not exist");
+
+    if (existingDivision.thumbnail) {
+        await deleteImageFromCloudinary(existingDivision.thumbnail);
+    }
+
     await Division.findByIdAndDelete(id);
 
-    return null
-}
+    return null;
+};
+
 
 
 export const DivisionService = {

@@ -3,30 +3,32 @@ import { catchAsync } from "../../utils/catchAsync";
 import { DivisionService } from "./division.service";
 import { sendResponse } from "../../utils/sendResponse";
 import { IDivision } from "./division.interface";
+import { uploadBufferToCloudinary } from "../../config/cloudinary.config";
 
 
-const createDivision = catchAsync(async (req: Request, res: Response)=>{
+const createDivision = catchAsync(async (req: Request, res: Response) => {
+    let thumbnailUrl: string | undefined;
+
+    if (req.body.thumbnailBase64) { // ফ্রন্টএন্ড থেকে base64 অথবা buffer পাঠাতে হবে
+        const buffer = Buffer.from(req.body.thumbnailBase64, 'base64');
+        const uploadResult = await uploadBufferToCloudinary(buffer, "division-thumbnail");
+        thumbnailUrl = uploadResult?.secure_url;
+    }
 
     const payload: IDivision = {
         ...req.body,
-        thumbnail: req.file?.path
-    }
+        thumbnail: thumbnailUrl
+    };
 
     const result = await DivisionService.createDevision(payload);
-
-    console.log({
-        file: req.file,
-        body: req.body
-    })
 
     sendResponse(res, {
         statusCode: 201,
         success: true,
         message: "Division created successfully",
         data: result
-    })
-
-}) 
+    });
+});
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getAllDivisions = catchAsync(async(req: Request, res: Response)=>{
@@ -53,22 +55,32 @@ const getSingleDivision = catchAsync (async (req: Request, res: Response) =>{
     })
 })
 
-const updateDivision = catchAsync(async (req: Request, res: Response)=>{
+const updateDivision = catchAsync(async (req: Request, res: Response) => {
     const id = req.params.id;
 
-    const payload: IDivision = {
-        ...req.body,
-        thumbnail: req.file?.path
+    let thumbnailUrl: string | undefined;
+
+    if (req.body.thumbnailBase64) {
+        const buffer = Buffer.from(req.body.thumbnailBase64, 'base64');
+        const uploadResult = await uploadBufferToCloudinary(buffer, "division-thumbnail");
+        thumbnailUrl = uploadResult?.secure_url;
     }
 
+    const payload: Partial<IDivision> = {
+        ...req.body,
+        ...(thumbnailUrl && { thumbnail: thumbnailUrl })
+    };
+
     const result = await DivisionService.updateDivision(id, payload);
+
     sendResponse(res, {
         statusCode: 200,
-        success: true, 
+        success: true,
         message: "Division Updated",
         data: result
-    })
-})
+    });
+});
+
 
 const deleteDivision = catchAsync(async (req: Request, res: Response)=>{
     const result = await DivisionService.deleteDivision(req.params.id);

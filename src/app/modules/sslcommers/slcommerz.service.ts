@@ -2,12 +2,11 @@
 import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/appError";
 import { Payment } from "../payment/payment.model";
-import { ISSLCommerz } from "./sslcommerz.interface";
+import { ISSLCommerz, ISSLResponse } from "./sslcommerz.interface";
 import axios from "axios";
-import httpStatus from "http-status-codes";
 
 
-const sslPaymentInit = async (payload: ISSLCommerz) => {
+const sslPaymentInit = async (payload: ISSLCommerz): Promise<ISSLResponse> => {
   try {
     const data = {
       store_id: envVars.SSL.SSL_STORE_ID,
@@ -41,19 +40,25 @@ const sslPaymentInit = async (payload: ISSLCommerz) => {
       ship_country: "N/A",
     };
 
-    const response = await axios({
+   /*  const response  = await axios({
       method: "POST",
       url: envVars.SSL.SSL_PAYMENT_API,
       data: data,
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    }); */
 
-    return response.data;
+        const response = await axios.post<ISSLResponse>(
+      envVars.SSL.SSL_PAYMENT_API,
+      data,
+      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+    );
+
+    return response.data as ISSLResponse;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error:any) {
     console.log("Payment error occured", error);
-    throw new AppError(httpStatus.BAD_REQUEST, error.message);
+    throw new AppError(201, error.message);
   }
 
 
@@ -77,7 +82,7 @@ const validatePayment = async (payload: any) => {
 
   } catch (error: any) {
     console.log(error)
-    throw new AppError(httpStatus.BAD_REQUEST, `Payment validation error occured ${error.message}`);
+    throw new AppError(400, `Payment validation error occured ${error.message}`);
   }
 
 }
