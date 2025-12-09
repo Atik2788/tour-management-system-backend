@@ -11,6 +11,8 @@ import { generatePdf, IInvoiceData } from "../../utils/invoice";
 import { ITour } from "../tour/tour.interface";
 import { IUser } from "../user/user.interface";
 import { sendEmail } from "../../utils/sendEmail";
+import { uploadBufferToCloudinary } from "../../config/cloudinary.config";
+
 
 const successPayment = async (query: Record<string, string>) => {
   const session = await Booking.startSession();
@@ -48,10 +50,16 @@ const successPayment = async (query: Record<string, string>) => {
       tourTitle: (updatedBooking?.tour as unknown as ITour).title,
       transactionId: updatedPayment?.transactionId,
       userName: (updatedBooking?.user as unknown as IUser).name,     
-
     }
 
     const pdfBuffer = await generatePdf(invoiceData)
+
+    const cloudinaryResult  = await uploadBufferToCloudinary(pdfBuffer, "invoice")
+    if(!cloudinaryResult){
+      throw new AppError(401, "Failed to upload invoice to cloudinary");
+    }
+
+    await Payment.findByIdAndUpdate(updatedPayment?._id, {invoiceUrl: cloudinaryResult?.secure_url}, {runValidators: true, session});
 
     await sendEmail({
       to: (updatedBooking?.user as unknown as IUser).email,
@@ -168,9 +176,24 @@ const initPayment = async (bookingId: string) => {
   }
 };
 
+const getInvoiceDownloadURL = async (paymentId: string) => {
+  const payment = await Payment.findById(paymentId).select("invoiceUrl");
+  if(!payment){
+    throw new AppError(httpStatus.NOT_FOUND, "Payment not found");
+  }
+  if(!payment.invoiceUrl){
+    throw new AppError(httpStatus.NOT_FOUND, "Invoice not found");
+  }
+
+  return {
+    invoiceUrl: payment.invoiceUrl,
+  }
+};
+
 export const PaymentService = {
   successPayment,
   failPayment,
   cancelPayment,
   initPayment,
+  getInvoiceDownloadURL,
 };

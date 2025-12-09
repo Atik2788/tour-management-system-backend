@@ -3,6 +3,7 @@ import { catchAsync } from "../../utils/catchAsync";
 import { PaymentService } from "./payment.service";
 import { envVars } from "../../config/env";
 import { sendResponse } from "../../utils/sendResponse";
+import { SSLService } from "../sslcommers/slcommerz.service";
 
 
 const successPayment = catchAsync(async(req:Request, res: Response) =>{
@@ -26,7 +27,7 @@ const failPayment = catchAsync(async(req:Request, res: Response) =>{
 
 })
 
-const cenclePayment = catchAsync(async(req:Request, res: Response) =>{
+const canclePayment = catchAsync(async(req:Request, res: Response) =>{
 // update booking status to cencel
 // update payment status to cencel
     const query = req.query;
@@ -51,12 +52,40 @@ const initPayment = catchAsync(async(req:Request, res: Response) =>{
     })
 })
 
+const getInvoiceDownloadURL = catchAsync(async(req:Request, res: Response) =>{
+    const paymentId =  req.params.paymentId;
+    console.log(paymentId, "hitted")
+
+    const result = await PaymentService.getInvoiceDownloadURL(paymentId);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Invoice download URL fetched successfully",
+        data: result,
+    })
+})
+
+const validatePayment = catchAsync(async(req:Request, res: Response) =>{
+    console.log("sslcommerz ipn url body", req.body)
+    await SSLService.validatePayment(req.body);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Payment validated successfully",
+        data: null,
+    })
+})
+
 
 
 
 export const PaymentController = {
     successPayment,
     failPayment,
-    cenclePayment,
-    initPayment
+    canclePayment,
+    initPayment,
+    getInvoiceDownloadURL,
+    validatePayment
 }
