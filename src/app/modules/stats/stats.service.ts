@@ -343,10 +343,31 @@ const getPaymentStats = async () => {
     },
  ]);
 
-    const[totalPayment, totalRevenue, totalPaymentByStatus] = await Promise.all([totalPaymentPromise, totalRevenuePromise, totalPaymentByStatusPromise]);
+ const avgPaymentPromise = Payment.aggregate([
+  //stage 1: grouping stage
+  {
+    $group: {
+      _id: null,
+      avgPaymentAmount: {$avg: "$amount"}
+    },
+  }
+ ]);
+
+ const paymentGetwayDataPromise = Payment.aggregate([
+  {
+    $group: {
+      _id: {$ifNull: ["$paymentGetewayData.ststus", "unknown"]},
+      count: {$sum: 1}
+    }
+  }
+ ])
 
 
-   return {totalPayment, totalRevenue, totalPaymentByStatus};
+
+    const[totalPayment,totalPaymentByStatus, totalRevenue,avgPayment, paymentGetwayData ] = await Promise.all([totalPaymentPromise, totalRevenuePromise, totalPaymentByStatusPromise, avgPaymentPromise, paymentGetwayDataPromise]);
+
+
+   return {totalPayment,totalPaymentByStatus, totalRevenue, avgPayment, paymentGetwayData};
 };
 
 
