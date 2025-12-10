@@ -1,18 +1,20 @@
-import { deleteImageFromCloudinary } from "../../config/cloudinary.config";
+import { deleteImageFromCLoudinary } from "../../config/cloudinary.config";
+import AppError from "../../errorHelpers/appError";
 import { IDivision } from "./division.interface";
 import { Division } from "./division.model";
 
 
-const createDevision = async(payload: IDivision) =>{
+const createDivision = async (payload: IDivision) => {
 
-    const existingDivision = await Division.findOne({name: payload.name});
-    if(existingDivision){
-        throw new Error("Division already exist")
+    const existingDivision = await Division.findOne({ name: payload.name });
+    if (existingDivision) {
+        throw new Error("A division with this name already exists.");
     }
 
     const division = await Division.create(payload);
-    return division;
-}
+
+    return division
+};
 
 const getAllDivisions = async() =>{
     const getDivision = await Division.find({});
@@ -28,41 +30,46 @@ const getAllDivisions = async() =>{
 
 const getSingleDivision = async (slug: string) =>{
     const division = await Division.findOne({slug});
+    
     return{
         data: division
     }
 }
 
 
-const updateDivision = async( id: string, payload: Partial<IDivision>) =>{
+const updateDivision = async (id: string, payload: Partial<IDivision>) => {
+
     const existingDivision = await Division.findById(id);
-    if(!existingDivision){
-        throw new Error("Division does not exist")
+    if (!existingDivision) {
+        throw new Error("Division not found.");
     }
 
     const duplicateDivision = await Division.findOne({
         name: payload.name,
-        _id: {$ne: id}
-    })
-    if(duplicateDivision){
-        throw new Error("A division with this name already exists.")
+        _id: { $ne: id },
+    });
+
+    if (duplicateDivision) {
+        throw new Error("A division with this name already exists.");
     }
 
-    const updateDivision = await Division.findByIdAndUpdate(id, payload, {new: true, runValidators: true});
 
-        if(payload.thumbnail && existingDivision.thumbnail){
-        await deleteImageFromCloudinary(existingDivision.thumbnail)
+    const updatedDivision = await Division.findByIdAndUpdate(id, payload, { new: true, runValidators: true })
+
+    if (payload.thumbnail && existingDivision.thumbnail) {
+        await deleteImageFromCLoudinary(existingDivision.thumbnail)
     }
-    
-    return updateDivision
-}
+
+    return updatedDivision
+
+};
 
 const deleteDivision = async (id: string) => {
     const existingDivision = await Division.findById(id);
-    if (!existingDivision) throw new Error("Division does not exist");
+    if (!existingDivision) throw new AppError(404, "Division does not exist");
 
     if (existingDivision.thumbnail) {
-        await deleteImageFromCloudinary(existingDivision.thumbnail);
+        await deleteImageFromCLoudinary(existingDivision.thumbnail);
     }
 
     await Division.findByIdAndDelete(id);
@@ -73,7 +80,7 @@ const deleteDivision = async (id: string) => {
 
 
 export const DivisionService = {
-    createDevision,
+    createDivision,
     getAllDivisions, 
     getSingleDivision,
     updateDivision, 
