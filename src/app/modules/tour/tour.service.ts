@@ -2,7 +2,7 @@ import { tourSearchableFields } from "./tour.constant";
 import { ITour, ITourType } from "./tour.interface"
 import { Tour, TourType } from "./tour.model"
 import { QueryBuilder } from "../../utils/QueryBuilder";
-import { deleteImageFromCloudinary } from "../../config/cloudinary.config";
+import { deleteImageFromCLoudinary } from "../../config/cloudinary.config";
 
 
 /* ------------------ TOUR SERVICE -------------------- */
@@ -52,12 +52,12 @@ const updateTour = async(id: string, payload: Partial<ITour>) => {
         throw new Error("Tour does not exist")
     }
 
-    // নতুন images add করা
+
     if(payload.images && payload.images.length && existingtour.images && existingtour.images.length){
         payload.images = [...payload.images, ...existingtour.images];
     }
 
-    // পুরোনো images delete করা
+
     if(payload.deleteImages && payload.deleteImages.length && existingtour.images && existingtour.images.length){
         const restDBImages = existingtour.images.filter(imgUrl => !payload.deleteImages?.includes(imgUrl));
 
@@ -68,12 +68,11 @@ const updateTour = async(id: string, payload: Partial<ITour>) => {
         payload.images = [...restDBImages, ...updatedImages];
     }
 
-    // DB update
+
     const updatedTour = await Tour.findByIdAndUpdate(id, payload, {new: true, runValidators: true});
 
-    // Cloudinary থেকে delete করা
     if(payload.deleteImages && payload.deleteImages.length && existingtour.images && existingtour.images.length){
-        await Promise.all(payload.deleteImages.map(url => deleteImageFromCloudinary(url)));
+        await Promise.all(payload.deleteImages.map(url => deleteImageFromCLoudinary(url)));
     }
 
     return updatedTour;

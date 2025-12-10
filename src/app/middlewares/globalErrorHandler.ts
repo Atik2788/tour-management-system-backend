@@ -8,8 +8,8 @@ import { handleCastError } from "../helpers/handleCastError";
 import { handleZodError } from "../helpers/handleZodError";
 import { handleValidationError } from "../helpers/handleValidationError";
 import { TErrorSources } from "../interfaces/error.types";
-import { deleteImageFromCloudinary } from "../config/cloudinary.config";
 import { array, url } from "zod";
+import { deleteImageFromCLoudinary } from "../config/cloudinary.config";
 
 
 export const globalErrorHandler = async(err: any, req: Request, res: Response, next: NextFunction) => {
@@ -19,13 +19,13 @@ export const globalErrorHandler = async(err: any, req: Request, res: Response, n
   } 
 
   if(req.file){
-    await deleteImageFromCloudinary(req.file.path);
+    await deleteImageFromCLoudinary(req.file.path);
   }
 
   if(req.files && Array.isArray(req.files) && req.files.length > 0){
     const imageUrls = (req.files as Express.Multer.File[]).map(file => file.path)
 
-    await Promise.all(imageUrls.map((url) => deleteImageFromCloudinary(url)));
+    await Promise.all(imageUrls.map((url) => deleteImageFromCLoudinary(url)));
   }
 
   let errorSouces: TErrorSources[] = []
